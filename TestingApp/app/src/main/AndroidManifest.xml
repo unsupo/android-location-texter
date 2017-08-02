@@ -23,13 +23,21 @@
         <receiver android:name=".sms.SmsDeliveredReceiver" />
 
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.ListItemActivity"
+            android:label="Testing App"
+            android:theme="@style/AppTheme.NoActionBar">
+            <!--<intent-filter>-->
+                <!---->
+            <!--</intent-filter>-->
         </activity>
         <service android:name=".MyService" android:process=":my_service" />
     </application>

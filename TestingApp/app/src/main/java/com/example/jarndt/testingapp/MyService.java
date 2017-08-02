@@ -1,6 +1,5 @@
 package com.example.jarndt.testingapp;
 
-import android.app.IntentService;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -9,31 +8,28 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.jarndt.testingapp.activities.MainActivity;
 import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
 import com.example.jarndt.testingapp.sms.SmsSentReceiver;
+import com.example.jarndt.testingapp.utilities.FileOptions;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import net.danlew.android.joda.DateUtils;
 import net.danlew.android.joda.JodaTimeAndroid;
 
 import org.joda.time.DateTime;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -55,38 +51,9 @@ public class MyService extends Service{
     private static final float LOCATION_DISTANCE = 10f;
     public static boolean IS_SERVICE_RUNNING = false;
 
-    Gson gson = new Gson();
-    public Location getLocationFromFile() {
-        StringBuffer fileContent = new StringBuffer("");
-        FileInputStream fis;
-        boolean b = false;
-        for(String s : fileList())
-            if("test_location".equals(s))
-                b = true;
-        if(!b)
-            return null;
-
-        try {
-            fis = openFileInput("test_location");
-            byte[] buffer = new byte[1024];
-
-            int n;
-            while ((n = fis.read(buffer)) != -1)
-                fileContent.append(new String(buffer, 0, n));
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        Location l = new Location("");
-        String[] split = fileContent.toString().split(",");
-        l.setAltitude(Double.parseDouble(split[2]));
-        l.setLongitude(Double.parseDouble(split[1]));
-        l.setLatitude(Double.parseDouble(split[0]));
-        return l;
-    }
-
     private static DateTime dateTime;
     private Location sendAtLocation;
+    private MyService myService = this;
 
     public void setSendAtLocation(Location sendAtLocation) {
         this.sendAtLocation = sendAtLocation;
@@ -104,7 +71,7 @@ public class MyService extends Service{
         public void onLocationChanged(Location location) {
             Log.e(TAG, "onLocationChanged: " + location);
             mLastLocation.set(location);
-            sendAtLocation = getLocationFromFile();
+            sendAtLocation = FileOptions.getLocationFromFile(myService,"test_location");
             Log.e(TAG, "onLocationChanged: "+sendAtLocation);
             if(sendAtLocation != null && isAtLocation(location,sendAtLocation)) {
                 Log.e(TAG,"onLocationChange: sending sms");
@@ -115,20 +82,20 @@ public class MyService extends Service{
                 }
             }
             
-            String filename = "gps";
-            String string = new Gson().toJson(location);
-            FileOutputStream outputStream;
-            try {
-                outputStream = openFileOutput(filename, Context.MODE_APPEND);
-                outputStream.write(string.getBytes());
-                outputStream.close();
-                Field pathField = FileOutputStream.class.getDeclaredField("path");
-                pathField.setAccessible(true);
-                String path = (String) pathField.get(outputStream);
-                Log.e(TAG,"onLocationChange: "+path);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+//            String filename = "gps";
+//            String string = new Gson().toJson(location);
+//            FileOutputStream outputStream;
+//            try {
+//                outputStream = openFileOutput(filename, Context.MODE_APPEND);
+//                outputStream.write(string.getBytes());
+//                outputStream.close();
+//                Field pathField = FileOutputStream.class.getDeclaredField("path");
+//                pathField.setAccessible(true);
+//                String path = (String) pathField.get(outputStream);
+//                Log.e(TAG,"onLocationChange: "+path);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
         }
 
         @Override
@@ -269,33 +236,6 @@ public class MyService extends Service{
                         pnextIntent).build();
         startForeground(Constants.NOTIFICATION_ID.FOREGROUND_SERVICE,
                 notification);
-
-    }
-    /*
-     * BroadcastReceiver mBrSend; BroadcastReceiver mBrReceive;
-     */
-    private void sendSMS(String phoneNumber, String message) {
-        ArrayList<PendingIntent> sentPendingIntents = new ArrayList<PendingIntent>();
-        ArrayList<PendingIntent> deliveredPendingIntents = new ArrayList<PendingIntent>();
-        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(this, SmsSentReceiver.class), 0);
-        PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(this, SmsDeliveredReceiver.class), 0);
-        try {
-            SmsManager sms = SmsManager.getDefault();
-            ArrayList<String> mSMSMessage = sms.divideMessage(message);
-            for (int i = 0; i < mSMSMessage.size(); i++) {
-                sentPendingIntents.add(i, sentPI);
-                deliveredPendingIntents.add(i, deliveredPI);
-            }
-            sms.sendMultipartTextMessage(phoneNumber, null, mSMSMessage,
-                    sentPendingIntents, deliveredPendingIntents);
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            Toast.makeText(getBaseContext(), "SMS sending failed...", Toast.LENGTH_SHORT).show();
-        }
 
     }
 }
