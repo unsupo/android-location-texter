@@ -19,8 +19,14 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -81,7 +87,7 @@ public class FileOptions {
     /*
      * BroadcastReceiver mBrSend; BroadcastReceiver mBrReceive;
      */
-    private void sendSMS(Context context, String phoneNumber, String message) {
+    public static void sendSMS(Context context, String phoneNumber, String message) {
         ArrayList<PendingIntent> sentPendingIntents = new ArrayList<PendingIntent>();
         ArrayList<PendingIntent> deliveredPendingIntents = new ArrayList<PendingIntent>();
         PendingIntent sentPI = PendingIntent.getBroadcast(context, 0,
@@ -110,17 +116,16 @@ public class FileOptions {
             GsonBuilder gsonBuilder = new GsonBuilder();
             gsonBuilder.registerTypeAdapter(Location.class, new LocationDeserializer());
             gsonBuilder.registerTypeAdapter(Location.class, new LocationSerializer());
+            gsonBuilder.registerTypeAdapter(DateTime.class, new DateTimeConverter());
             gson = gsonBuilder.create();
         }
         return gson;
     }
 }
 
-class LocationSerializer implements JsonSerializer<Location>
-{
+class LocationSerializer implements JsonSerializer<Location> {
     public JsonElement serialize(Location t, Type type,
-                                 JsonSerializationContext jsc)
-    {
+                                 JsonSerializationContext jsc){
         JsonObject jo = new JsonObject();
         jo.addProperty("mProvider", t.getProvider());
         jo.addProperty("mAccuracy", t.getAccuracy());
@@ -128,23 +133,17 @@ class LocationSerializer implements JsonSerializer<Location>
         jo.addProperty("mLatitude", t.getLatitude());
         jo.addProperty("mAltitude", t.getAltitude());
         jo.addProperty("mBearing", t.getBearing());
-        jo.addProperty("mBearingAccuracyDegrees", t.getBearingAccuracyDegrees());
         jo.addProperty("mSpeed",t.getSpeed());
         jo.addProperty("mElapsedRealtimeNanos",t.getElapsedRealtimeNanos());
-        jo.addProperty("mSpeedAccuracyMetersPerSecond",t.getSpeedAccuracyMetersPerSecond());
         jo.addProperty("mTime",t.getTime());
-        jo.addProperty("mVerticalAccuracyMeters",t.getVerticalAccuracyMeters());
         return jo;
     }
-
 }
 
-class LocationDeserializer implements JsonDeserializer<Location>
-{
+class LocationDeserializer implements JsonDeserializer<Location> {
     public Location deserialize(JsonElement je, Type type,
                                 JsonDeserializationContext jdc)
-            throws JsonParseException
-    {
+            throws JsonParseException {
         JsonObject jo = je.getAsJsonObject();
         Location l = new Location("");
         if(jo.getAsJsonPrimitive("mProvider") != null)
@@ -159,18 +158,36 @@ class LocationDeserializer implements JsonDeserializer<Location>
             l.setAltitude(jo.getAsJsonPrimitive("mAltitude").getAsFloat());
         if(jo.getAsJsonPrimitive("mBearing") != null)
             l.setBearing(jo.getAsJsonPrimitive("mBearing").getAsFloat());
-        if(jo.getAsJsonPrimitive("mBearingAccuracyDegrees") != null)
-            l.setBearingAccuracyDegrees(jo.getAsJsonPrimitive("mBearingAccuracyDegrees").getAsFloat());
         if(jo.getAsJsonPrimitive("mSpeed") != null)
             l.setSpeed(jo.getAsJsonPrimitive("mSpeed").getAsFloat());
         if(jo.getAsJsonPrimitive("mElapsedRealtimeNanos") != null)
             l.setElapsedRealtimeNanos(jo.getAsJsonPrimitive("mElapsedRealtimeNanos").getAsLong());
-        if(jo.getAsJsonPrimitive("mSpeedAccuracyMetersPerSecond") != null)
-            l.setSpeedAccuracyMetersPerSecond(jo.getAsJsonPrimitive("mSpeedAccuracyMetersPerSecond").getAsFloat());
         if(jo.getAsJsonPrimitive("mTime") != null)
             l.setTime(jo.getAsJsonPrimitive("mTime").getAsLong());
-        if(jo.getAsJsonPrimitive("mVerticalAccuracyMeters") != null)
-            l.setVerticalAccuracyMeters(jo.getAsJsonPrimitive("mVerticalAccuracyMeters").getAsFloat());
         return l;
+    }
+}
+class DateTimeConverter implements JsonSerializer<DateTime>, JsonDeserializer<DateTime>{
+    @Override
+    public JsonElement serialize(DateTime t, Type typeOfSrc, JsonSerializationContext context){
+        JsonObject jo = new JsonObject();
+        jo.addProperty("millies", t.getMillis());
+        return jo;
+
+//        final DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+//        return new JsonPrimitive(fmt.print(src));
+    }
+
+    public DateTime deserialize(JsonElement je, Type type,
+                                JsonDeserializationContext jdc)
+            throws JsonParseException {
+        JsonObject jo = je.getAsJsonObject();
+        DateTime l = null;
+        if(jo.getAsJsonPrimitive("millies") != null)
+            l = new DateTime(jo.getAsJsonPrimitive("millies").getAsLong());
+        return l;
+
+//        final DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
+//        return fmt.parseDateTime(json.getAsString());
     }
 }

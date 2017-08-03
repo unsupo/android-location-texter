@@ -20,6 +20,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.example.jarndt.testingapp.activities.MainActivity;
+import com.example.jarndt.testingapp.objects.ListItemObject;
 import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
 import com.example.jarndt.testingapp.sms.SmsSentReceiver;
 import com.example.jarndt.testingapp.utilities.FileOptions;
@@ -33,6 +34,7 @@ import org.joda.time.DateTime;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -85,14 +87,16 @@ public class MyService extends Service{
         public void onLocationChanged(Location location) {
             Log.e(TAG, "onLocationChanged: " + location);
             mLastLocation.set(location);
-            sendAtLocation = getLocationFromFile();
-            Log.e(TAG, "onLocationChanged: "+sendAtLocation);
-            if(sendAtLocation != null && isAtLocation(location,sendAtLocation)) {
-                Log.e(TAG,"onLocationChange: sending sms");
-                if(dateTime != null && dateTime.isBefore(DateTime.now().minusDays(1))) {
-//                    sendSMS("8018311017", "At the gym");
-                    Log.e(TAG,"Sent SMS");
-                    dateTime = DateTime.now();
+//            sendAtLocation = getLocationFromFile();
+//            Log.e(TAG, "onLocationChanged: "+sendAtLocation);
+            for(ListItemObject listItemObject : ListItemCache.getListItemObjects()) {
+                if (listItemObject.getLocation() != null && isAtLocation(location, listItemObject.getLocation())) {
+                    if (listItemObject.getLastUpdatedDate() != null && listItemObject.getLastUpdatedDate().isBefore(DateTime.now().minusDays(1))) {
+                        Log.e(TAG, "onLocationChange: sending sms");
+                        FileOptions.sendSMS(MyService.this, listItemObject.getSmsNumber(), listItemObject.getMessage());
+                        Log.e(TAG, "Sent SMS");
+                        listItemObject.setLastUpdatedDate(DateTime.now());
+                    }
                 }
             }
             

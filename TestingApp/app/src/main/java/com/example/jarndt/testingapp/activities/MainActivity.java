@@ -2,21 +2,32 @@ package com.example.jarndt.testingapp.activities;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.example.jarndt.testingapp.Constants;
 import com.example.jarndt.testingapp.MyService;
 import com.example.jarndt.testingapp.R;
@@ -46,6 +57,7 @@ public class MainActivity extends AppCompatActivity
 
     private void createUI() {
 //        Arrays.asList(fileList()).forEach(a->deleteFile(a));
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -73,6 +85,58 @@ public class MainActivity extends AppCompatActivity
                 android.R.layout.simple_list_item_1, listItems);
         listView.setAdapter(adapter);
 
+        ((SwipeMenuListView)findViewById(R.id.list_item)).setMenuCreator(new SwipeMenuCreator() {
+            @Override
+            public void create(SwipeMenu menu) {
+                // create "open" item
+                SwipeMenuItem openItem = new SwipeMenuItem(
+                        getApplicationContext());
+                // set item background
+                openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
+                        0xCE)));
+                // set item width
+                openItem.setWidth(dp2px(90));
+                // set item title
+                openItem.setTitle("Open");
+                // set item title fontsize
+                openItem.setTitleSize(18);
+                // set item title font color
+                openItem.setTitleColor(Color.WHITE);
+                // add to menu
+                menu.addMenuItem(openItem);
+
+                // create "delete" item
+                SwipeMenuItem deleteItem = new SwipeMenuItem(
+                        getApplicationContext());
+                // set item background
+                deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                        0x3F, 0x25)));
+                // set item width
+                deleteItem.setWidth(dp2px(90));
+                // set a icon
+                deleteItem.setIcon(ContextCompat.getDrawable(MainActivity.this,R.drawable.ic_delete));
+                // add to menu
+                menu.addMenuItem(deleteItem);
+            }
+        });
+        ((SwipeMenuListView)findViewById(R.id.list_item)).setOnMenuItemClickListener((position, menu, index)-> {
+//            ApplicationInfo item = mAppList.get(position);
+            switch (index) {
+                case 0:
+                    // open
+                    openItem(listItems,position);
+                    break;
+                case 1:
+                    // delete
+//					delete(item);
+                    ListItemCache.deleteListItemById(listItems.get(position).getId());
+                    listItems.remove(position);
+                    adapter.notifyDataSetChanged();
+                    break;
+            }
+            return false;
+        });
+
         findViewById(R.id.fab).setOnClickListener(view-> {
             ListItemObject listItemObject = new ListItemObject();
             ListItemCache.addListItemObject(listItemObject);
@@ -80,18 +144,26 @@ public class MainActivity extends AppCompatActivity
             adapter.notifyDataSetChanged();
             Intent myIntent = new Intent(MainActivity.this,
                     ListItemActivity.class);
+            myIntent.putExtra("listItemActivity",listItemObject.getId());
             startActivity(myIntent);
         });
 
         listView.setOnItemClickListener((parent, view, position, id)-> {
-//            Toast.makeText(MainActivity.this, "Clicked: "+listItems.get(position), Toast.LENGTH_LONG)
-//                    .show();
-            Intent myIntent = new Intent(this,
-                    ListItemActivity.class);
-            myIntent.putExtra("listItemActivity",listItems.get(position).getId());
-            startActivity(myIntent);
+            openItem(listItems,position);
         });
         listView.smoothScrollToPosition(0);
+    }
+
+    private void openItem(ArrayList<ListItemObject> listItems, int position) {
+        Intent myIntent = new Intent(this,
+                ListItemActivity.class);
+        myIntent.putExtra("listItemActivity",listItems.get(position).getId());
+        startActivity(myIntent);
+    }
+
+    private int dp2px(int dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
+                getResources().getDisplayMetrics());
     }
 
     private void startServices() {
@@ -198,6 +270,11 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ((ListView) findViewById(R.id.list_item)).invalidateViews();
+    }
 
     @Override
     public void onPause(){

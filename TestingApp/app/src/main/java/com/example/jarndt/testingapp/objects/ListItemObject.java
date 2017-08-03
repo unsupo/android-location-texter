@@ -7,6 +7,7 @@ import org.joda.time.DateTime;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -16,15 +17,16 @@ import java.util.concurrent.TimeUnit;
 
 public class ListItemObject {
     private Location location;
-    private LocalDateTime createDate, lastUpdatedDate;
+    private DateTime createDate, lastUpdatedDate;
     private boolean active = true;
     private long intervalSeconds;
     private String name, smsNumber, message, id;
 
     public ListItemObject() {
-        this.createDate = LocalDateTime.now();
+        this.createDate = DateTime.now();
+        this.lastUpdatedDate = DateTime.now().minusYears(10);
         this.id = UUID.randomUUID().toString();
-        this.name = "name: "+id;
+        name = "";
     }
 
     public Location getLocation() {
@@ -35,19 +37,23 @@ public class ListItemObject {
         this.location = location;
     }
 
-    public LocalDateTime getCreateDate() {
+    public DateTime getCreateDate() {
+        if(createDate == null)
+            createDate = DateTime.now();
         return createDate;
     }
 
-    public void setCreateDate(LocalDateTime createDate) {
+    public void setCreateDate(DateTime createDate) {
         this.createDate = createDate;
     }
 
-    public LocalDateTime getLastUpdatedDate() {
+    public DateTime getLastUpdatedDate() {
+        if(lastUpdatedDate == null)
+            lastUpdatedDate = DateTime.now().minusYears(10);
         return lastUpdatedDate;
     }
 
-    public void setLastUpdatedDate(LocalDateTime lastUpdatedDate) {
+    public void setLastUpdatedDate(DateTime lastUpdatedDate) {
         this.lastUpdatedDate = lastUpdatedDate;
     }
 
@@ -68,6 +74,8 @@ public class ListItemObject {
     }
 
     public String getName() {
+        if(name == null)
+            return "";
         return name;
     }
 
@@ -76,6 +84,8 @@ public class ListItemObject {
     }
 
     public String getSmsNumber() {
+        if(smsNumber == null)
+            return "";
         return smsNumber;
     }
 
@@ -84,6 +94,8 @@ public class ListItemObject {
     }
 
     public String getMessage() {
+        if(message == null)
+            return "";
         return message;
     }
 
@@ -138,6 +150,10 @@ public class ListItemObject {
 
     @Override
     public String toString() {
-        return name;
+        if(name!=null && !name.isEmpty())
+            return name;
+        if(!getSmsNumber().isEmpty() || !getMessage().isEmpty())
+            return getSmsNumber()+" | "+(getMessage().isEmpty()?"":getMessage().substring(0,5))+" | "+(active?"Y":"N");
+        return id;
     }
 }

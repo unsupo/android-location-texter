@@ -39,6 +39,10 @@ public class ListItemCache {
         return getInstance()._getListItemObjects().get(id);
     }
 
+    public static void deleteListItemById(String id) {
+        getInstance()._getListItemObjects().remove(id);
+    }
+
     public static void writeToFile(Context context) {
         Log.e(LIST_ITEM_CACHE,"writeToFile");
         FileOptions.writeToFile(context,LIST_ITEM_CACHE,getInstance().toString(),Context.MODE_PRIVATE);
@@ -72,4 +76,5 @@ public class ListItemCache {
             gson = new Gson();
         return gson.toJson(listItemObjects);
     }
+
 }

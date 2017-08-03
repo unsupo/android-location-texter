@@ -24,6 +24,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -39,9 +40,6 @@ public class ListItemActivity extends AppCompatActivity
 
     Location location, testLocation;
     LocationManager locationManager;
-    TextView tv1,tv2,tv3;//, vt1,vt2,vt3;
-    EditText vt1,vt2,vt3;
-    Button setLocation;
     ListItemObject listItemObject;
 
     String[] permisions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.SEND_SMS};
@@ -53,93 +51,76 @@ public class ListItemActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        checkLocationPermission();
+
         String target = getIntent().getStringExtra("listItemActivity");
         listItemObject = ListItemCache.getListItemObjectById(target);
 
-        tv1 = (TextView)findViewById(R.id.textView);
-        tv2 = (TextView)findViewById(R.id.textView2);
-        tv3 = (TextView)findViewById(R.id.textView3);
+        autoFillListItemObject();
 
-        vt1 = (EditText)findViewById(R.id.textview6);
-        vt2 = (EditText)findViewById(R.id.textView7);
-        vt3 = (EditText)findViewById(R.id.textView8);
-        vt1.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    if(testLocation == null)
-                        testLocation = new Location("");
-                    try {
-                        testLocation.setAltitude(Double.parseDouble(vt1.getText().toString()));
-                    }catch (NumberFormatException nfe){
-                        vt1.setText("");
-                    }
-                }
-            }
+        setButtonListeners();
+    }
+
+    private void setButtonListeners() {
+        ((Button) findViewById(R.id.saveButton)).setOnClickListener(view ->{
+            if(listItemObject == null)
+                return;
+            Location l = new Location("");
+            if(listItemObject.getLocation() != null)
+                l = listItemObject.getLocation();
+            if(location != null)
+                l = location;
+            double a = l.getAltitude(),la = l.getLatitude(),lo = l.getLongitude();
+            try{ a = Double.parseDouble(((EditText)findViewById(R.id.altitudeEditText)).getText().toString());}catch (Exception e){/*DO NOTHING*/}
+            try{ la = Double.parseDouble(((EditText)findViewById(R.id.latitudeEditText)).getText().toString());}catch (Exception e){/*DO NOTHING*/}
+            try{ lo = Double.parseDouble(((EditText)findViewById(R.id.longitudeEditText)).getText().toString());}catch (Exception e){/*DO NOTHING*/}
+            l.setAltitude(a);
+            l.setLatitude(la);
+            l.setLongitude(lo);
+
+            listItemObject.setLocation(l);
+            listItemObject.setName(((EditText)findViewById(R.id.nameEditText)).getText().toString());
+            listItemObject.setSmsNumber(((EditText)findViewById(R.id.phoneNumberEditText)).getText().toString());
+            listItemObject.setMessage(((EditText)findViewById(R.id.messageEditText)).getText().toString());
+            listItemObject.setActive(((CheckBox)findViewById(R.id.activeCheckBox)).isChecked());
+
+            onBackPressed();
         });
-        vt2.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    if(testLocation == null)
-                        testLocation = new Location("");
-                    try{
-                        testLocation.setLatitude(Double.parseDouble(vt2.getText().toString()));
-                    }catch (NumberFormatException nfe){
-                        vt2.setText("");
-                    }
-                }
-            }
+        ((Button) findViewById(R.id.setThisLocation)).setOnClickListener(view -> {
+            if(listItemObject == null)
+                return;
+            listItemObject.setLocation(location);
+            autoFillListItemObject();
         });
-        vt3.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    if(testLocation == null)
-                        testLocation = new Location("");
-                    try{
-                        testLocation.setLongitude(Double.parseDouble(vt3.getText().toString()));
-                    }catch (NumberFormatException nfe){
-                        vt3.setText("");
-                    }
-                }
-            }
-        });
+    }
 
-        if(tv1 != null)
-            tv1.setText(getLocation()==null?"Altitude":getLocation().getAltitude()+"");
-        if(tv2 != null && getLocation() != null)
-            tv2.setText(getLocation()==null?"Longitude":getLocation().getLongitude()+"");
-        if(tv3 != null && getLocation() != null)
-            tv3.setText(getLocation()==null?"Latitude":getLocation().getLatitude()+"");
+    private void autoFillListItemObject() {
+        if(listItemObject == null)
+            return;
 
-        if(listItemObject != null)
-            testLocation = listItemObject.getLocation();
-        if(vt1 != null)
-            vt1.setText(testLocation==null?"Altitude":testLocation.getAltitude()+"");
-        if(vt2 != null)
-            vt2.setText(testLocation==null?"Longitude":testLocation.getLongitude()+"");
-        if(vt3 != null)
-            vt3.setText(testLocation==null?"Latitude":testLocation.getLatitude()+"");
+        setLocation();
+        ((EditText)findViewById(R.id.nameEditText)).setText(listItemObject.getName());
+        ((EditText)findViewById(R.id.phoneNumberEditText)).setText(listItemObject.getSmsNumber());
+        ((EditText)findViewById(R.id.messageEditText)).setText(listItemObject.getMessage());
 
-        checkLocationPermission();
+        ((CheckBox)findViewById(R.id.activeCheckBox)).setChecked(listItemObject.isActive());
+    }
 
-        setLocation = (Button)findViewById(R.id.button);
-        setLocation.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            public void onClick(View v) {
-                testLocation = getLocation();
-                if(vt1 != null)
-                    vt1.setText(testLocation==null?"Altitude":testLocation.getAltitude()+"");
-                if(vt2 != null)
-                    vt2.setText(testLocation==null?"Longitude":testLocation.getLongitude()+"");
-                if(vt3 != null)
-                    vt3.setText(testLocation==null?"Latitude":testLocation.getLatitude()+"");
-                writeGPS(testLocation);
-                if(listItemObject != null)
-                    listItemObject.setLocation(testLocation);
-            }
-        });
+    public void setLocation() {
+        if(listItemObject.getLocation() == null){
+            ((EditText) findViewById(R.id.altitudeEditText)).setText(getLocation().getAltitude() + "");
+            ((EditText) findViewById(R.id.latitudeEditText)).setText(getLocation().getLatitude() + "");
+            ((EditText) findViewById(R.id.longitudeEditText)).setText(getLocation().getLongitude() + "");
+        }else {
+            ((EditText) findViewById(R.id.altitudeEditText)).setText(listItemObject.getLocation().getAltitude() + "");
+            ((EditText) findViewById(R.id.latitudeEditText)).setText(listItemObject.getLocation().getLatitude() + "");
+            ((EditText) findViewById(R.id.longitudeEditText)).setText(listItemObject.getLocation().getLongitude() + "");
+        }
+        if(getLocation() != null) {
+            ((TextView) findViewById(R.id.altitudeTextview)).setText(getLocation().getAltitude() + "");
+            ((TextView) findViewById(R.id.latitudeTextView)).setText(getLocation().getLatitude() + "");
+            ((TextView) findViewById(R.id.longitudeTextView)).setText(getLocation().getLongitude() + "");
+        }
     }
 
     private void writeGPS(Location testLocation) {
@@ -199,18 +180,6 @@ public class ListItemActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
-
-    public void getLocationChangeCallable(Location location) {
-        this.location = location;
-        if(tv1 != null)
-            tv1.setText(location==null?"Altitude":location.getAltitude()+"");
-        if(tv2 != null)
-            tv2.setText(location==null?"Longitude":location.getLongitude()+"");
-        if(tv3 != null)
-            tv3.setText(location==null?"Latitude":location.getLatitude()+"");
-    }
-
 
     public boolean checkLocationPermission() {
         String permission = Manifest.permission.ACCESS_FINE_LOCATION;
@@ -272,7 +241,8 @@ public class ListItemActivity extends AppCompatActivity
 
     @Override
     public void onLocationChanged(Location location) {
-        getLocationChangeCallable(location);
+        this.location = location;
+        setLocation();
     }
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {}
