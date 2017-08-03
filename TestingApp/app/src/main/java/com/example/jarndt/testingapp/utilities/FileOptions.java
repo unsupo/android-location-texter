@@ -12,11 +12,23 @@ import android.widget.Toast;
 
 import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
 import com.example.jarndt.testingapp.sms.SmsSentReceiver;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by jarndt on 8/2/17.
@@ -24,7 +36,7 @@ import java.util.ArrayList;
 
 public class FileOptions {
     public static final String TAG = "FileOptions";
-    public static Location getLocationFromFile(Context context, String fileName) {
+    public static String getFileContents(Context context, String fileName) {
         StringBuffer fileContent = new StringBuffer("");
         FileInputStream fis;
         boolean b = false;
@@ -45,12 +57,8 @@ public class FileOptions {
             e.printStackTrace();
             return null;
         }
-        Location l = new Location("");
-        String[] split = fileContent.toString().split(",");
-        l.setAltitude(Double.parseDouble(split[2]));
-        l.setLongitude(Double.parseDouble(split[1]));
-        l.setLatitude(Double.parseDouble(split[0]));
-        return l;
+        Log.e(TAG,"getFileContents: "+fileName+"\n\t"+fileContent.toString());
+        return fileContent.toString();
     }
 
     public static String writeToFile(Context context, String filename, String content, int mode){
@@ -62,7 +70,7 @@ public class FileOptions {
             Field pathField = FileOutputStream.class.getDeclaredField("path");
             pathField.setAccessible(true);
             String path = (String) pathField.get(outputStream);
-            Log.e(TAG,"writeToFile: "+path);
+            Log.e(TAG,"writeToFile: "+path+"\n\t"+content+"\n\n"+mode);
             return path;
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,6 +102,75 @@ public class FileOptions {
             e.printStackTrace();
             Toast.makeText(context, "SMS sending failed...", Toast.LENGTH_SHORT).show();
         }
+    }
 
+    private static Gson gson;
+    public static Gson getGson(){
+        if(gson == null){
+            GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.registerTypeAdapter(Location.class, new LocationDeserializer());
+            gsonBuilder.registerTypeAdapter(Location.class, new LocationSerializer());
+            gson = gsonBuilder.create();
+        }
+        return gson;
+    }
+}
+
+class LocationSerializer implements JsonSerializer<Location>
+{
+    public JsonElement serialize(Location t, Type type,
+                                 JsonSerializationContext jsc)
+    {
+        JsonObject jo = new JsonObject();
+        jo.addProperty("mProvider", t.getProvider());
+        jo.addProperty("mAccuracy", t.getAccuracy());
+        jo.addProperty("mLongitude", t.getLongitude());
+        jo.addProperty("mLatitude", t.getLatitude());
+        jo.addProperty("mAltitude", t.getAltitude());
+        jo.addProperty("mBearing", t.getBearing());
+        jo.addProperty("mBearingAccuracyDegrees", t.getBearingAccuracyDegrees());
+        jo.addProperty("mSpeed",t.getSpeed());
+        jo.addProperty("mElapsedRealtimeNanos",t.getElapsedRealtimeNanos());
+        jo.addProperty("mSpeedAccuracyMetersPerSecond",t.getSpeedAccuracyMetersPerSecond());
+        jo.addProperty("mTime",t.getTime());
+        jo.addProperty("mVerticalAccuracyMeters",t.getVerticalAccuracyMeters());
+        return jo;
+    }
+
+}
+
+class LocationDeserializer implements JsonDeserializer<Location>
+{
+    public Location deserialize(JsonElement je, Type type,
+                                JsonDeserializationContext jdc)
+            throws JsonParseException
+    {
+        JsonObject jo = je.getAsJsonObject();
+        Location l = new Location("");
+        if(jo.getAsJsonPrimitive("mProvider") != null)
+            l = new Location(jo.getAsJsonPrimitive("mProvider").getAsString());
+        if(jo.getAsJsonPrimitive("mAccuracy") != null)
+            l.setAccuracy(jo.getAsJsonPrimitive("mAccuracy").getAsFloat());
+        if(jo.getAsJsonPrimitive("mLongitude") != null)
+            l.setLongitude(jo.getAsJsonPrimitive("mLongitude").getAsFloat());
+        if(jo.getAsJsonPrimitive("mLatitude") != null)
+            l.setLatitude(jo.getAsJsonPrimitive("mLatitude").getAsFloat());
+        if(jo.getAsJsonPrimitive("mAltitude") != null)
+            l.setAltitude(jo.getAsJsonPrimitive("mAltitude").getAsFloat());
+        if(jo.getAsJsonPrimitive("mBearing") != null)
+            l.setBearing(jo.getAsJsonPrimitive("mBearing").getAsFloat());
+        if(jo.getAsJsonPrimitive("mBearingAccuracyDegrees") != null)
+            l.setBearingAccuracyDegrees(jo.getAsJsonPrimitive("mBearingAccuracyDegrees").getAsFloat());
+        if(jo.getAsJsonPrimitive("mSpeed") != null)
+            l.setSpeed(jo.getAsJsonPrimitive("mSpeed").getAsFloat());
+        if(jo.getAsJsonPrimitive("mElapsedRealtimeNanos") != null)
+            l.setElapsedRealtimeNanos(jo.getAsJsonPrimitive("mElapsedRealtimeNanos").getAsLong());
+        if(jo.getAsJsonPrimitive("mSpeedAccuracyMetersPerSecond") != null)
+            l.setSpeedAccuracyMetersPerSecond(jo.getAsJsonPrimitive("mSpeedAccuracyMetersPerSecond").getAsFloat());
+        if(jo.getAsJsonPrimitive("mTime") != null)
+            l.setTime(jo.getAsJsonPrimitive("mTime").getAsLong());
+        if(jo.getAsJsonPrimitive("mVerticalAccuracyMeters") != null)
+            l.setVerticalAccuracyMeters(jo.getAsJsonPrimitive("mVerticalAccuracyMeters").getAsFloat());
+        return l;
     }
 }

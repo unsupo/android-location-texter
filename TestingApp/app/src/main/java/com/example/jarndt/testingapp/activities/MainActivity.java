@@ -10,6 +10,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
@@ -19,9 +20,15 @@ import android.widget.Toast;
 import com.example.jarndt.testingapp.Constants;
 import com.example.jarndt.testingapp.MyService;
 import com.example.jarndt.testingapp.R;
+import com.example.jarndt.testingapp.objects.ListItemObject;
+import com.example.jarndt.testingapp.utilities.ListItemCache;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -38,6 +45,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void createUI() {
+//        Arrays.asList(fileList()).forEach(a->deleteFile(a));
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -51,19 +59,24 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        ListItemCache.onCreate(this);
         listItem();
     }
 
     private int LIST_ITEMS_ID = "List Items arraylist id".hashCode();
 
+    private Gson gson = new Gson();
     private void listItem() {
         ListView listView = (ListView) findViewById(R.id.list_item);
-        ArrayList<String> listItems = new ArrayList<>();
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        ArrayList<ListItemObject> listItems = new ArrayList<>(ListItemCache.getListItemObjects());
+        ArrayAdapter<ListItemObject> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, listItems);
         listView.setAdapter(adapter);
+
         findViewById(R.id.fab).setOnClickListener(view-> {
-            listItems.add(UUID.randomUUID().toString());
+            ListItemObject listItemObject = new ListItemObject();
+            ListItemCache.addListItemObject(listItemObject);
+            listItems.add(listItemObject);
             adapter.notifyDataSetChanged();
             Intent myIntent = new Intent(MainActivity.this,
                     ListItemActivity.class);
@@ -71,10 +84,11 @@ public class MainActivity extends AppCompatActivity
         });
 
         listView.setOnItemClickListener((parent, view, position, id)-> {
-            Toast.makeText(MainActivity.this, "Clicked: "+listItems.get(position), Toast.LENGTH_LONG)
-                    .show();
-            Intent myIntent = new Intent(MainActivity.this,
+//            Toast.makeText(MainActivity.this, "Clicked: "+listItems.get(position), Toast.LENGTH_LONG)
+//                    .show();
+            Intent myIntent = new Intent(this,
                     ListItemActivity.class);
+            myIntent.putExtra("listItemActivity",listItems.get(position).getId());
             startActivity(myIntent);
         });
         listView.smoothScrollToPosition(0);
@@ -182,5 +196,20 @@ public class MainActivity extends AppCompatActivity
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+
+
+    @Override
+    public void onPause(){
+        ListItemCache.writeToFile(this);
+        Log.e(this.getLocalClassName(),"onPause");
+        super.onPause();
+    }
+
+    @Override
+    public void onStop(){
+        ListItemCache.writeToFile(this);
+        Log.e(this.getLocalClassName(),"onStop");
+        super.onStop();
     }
 }

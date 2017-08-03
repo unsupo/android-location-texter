@@ -23,6 +23,7 @@ import com.example.jarndt.testingapp.activities.MainActivity;
 import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
 import com.example.jarndt.testingapp.sms.SmsSentReceiver;
 import com.example.jarndt.testingapp.utilities.FileOptions;
+import com.example.jarndt.testingapp.utilities.ListItemCache;
 import com.google.gson.Gson;
 
 import net.danlew.android.joda.JodaTimeAndroid;
@@ -33,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by jarndt on 7/29/17.
@@ -59,6 +61,18 @@ public class MyService extends Service{
         this.sendAtLocation = sendAtLocation;
     }
 
+    public Location getLocationFromFile() {
+        String fileContent = FileOptions.getFileContents(this, "test_location");
+        Location l = new Location("");
+        String[] split = fileContent.split(",");
+        if(split.length != 3)
+            return null;
+        l.setAltitude(Double.parseDouble(split[2]));
+        l.setLongitude(Double.parseDouble(split[1]));
+        l.setLatitude(Double.parseDouble(split[0]));
+        return l;
+    }
+
     private class LocationListener implements android.location.LocationListener {
         Location mLastLocation;
 
@@ -71,7 +85,7 @@ public class MyService extends Service{
         public void onLocationChanged(Location location) {
             Log.e(TAG, "onLocationChanged: " + location);
             mLastLocation.set(location);
-            sendAtLocation = FileOptions.getLocationFromFile(myService,"test_location");
+            sendAtLocation = getLocationFromFile();
             Log.e(TAG, "onLocationChanged: "+sendAtLocation);
             if(sendAtLocation != null && isAtLocation(location,sendAtLocation)) {
                 Log.e(TAG,"onLocationChange: sending sms");
@@ -151,6 +165,7 @@ public class MyService extends Service{
         JodaTimeAndroid.init(this);
         dateTime = DateTime.now().minusYears(10);
         initializeLocationManager();
+        ListItemCache.onCreate(this);
         try {
             mLocationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,

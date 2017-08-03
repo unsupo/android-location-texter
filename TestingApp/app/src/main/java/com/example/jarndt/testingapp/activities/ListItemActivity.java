@@ -5,7 +5,6 @@ package com.example.jarndt.testingapp.activities;
  */
 
 import android.Manifest;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -21,25 +20,19 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.telephony.SmsManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.jarndt.testingapp.Constants;
 import com.example.jarndt.testingapp.MyService;
 import com.example.jarndt.testingapp.R;
-import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
-import com.example.jarndt.testingapp.sms.SmsSentReceiver;
+import com.example.jarndt.testingapp.objects.ListItemObject;
 import com.example.jarndt.testingapp.utilities.FileOptions;
-import com.google.gson.Gson;
-
-import java.io.FileInputStream;
-import java.util.ArrayList;
+import com.example.jarndt.testingapp.utilities.ListItemCache;
 
 public class ListItemActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, LocationListener {
@@ -49,45 +42,10 @@ public class ListItemActivity extends AppCompatActivity
     TextView tv1,tv2,tv3;//, vt1,vt2,vt3;
     EditText vt1,vt2,vt3;
     Button setLocation;
+    ListItemObject listItemObject;
 
     String[] permisions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.SEND_SMS};
 
-    public static ListItemActivity instance;
-    public static ListItemActivity getInstance(){
-        return instance;
-    }
-
-    Gson gson = new Gson();
-    public Location getLocationFromFile() {
-        StringBuffer fileContent = new StringBuffer("");
-        FileInputStream fis;
-        boolean b = false;
-        for(String s : fileList())
-            if("test_location".equals(s))
-                b = true;
-        if(!b)
-            return null;
-
-        try {
-            fis = openFileInput("test_location");
-            byte[] buffer = new byte[1024];
-
-            int n;
-            while ((n = fis.read(buffer)) != -1)
-                fileContent.append(new String(buffer, 0, n));
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        Location l = new Location("");
-        String[] split = fileContent.toString().split(",");
-        if(split.length != 3)
-            return null;
-        l.setAltitude(Double.parseDouble(split[2]));
-        l.setLongitude(Double.parseDouble(split[1]));
-        l.setLatitude(Double.parseDouble(split[0]));
-        return l;
-    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,11 +53,14 @@ public class ListItemActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        String target = getIntent().getStringExtra("listItemActivity");
+        listItemObject = ListItemCache.getListItemObjectById(target);
+
         tv1 = (TextView)findViewById(R.id.textView);
         tv2 = (TextView)findViewById(R.id.textView2);
         tv3 = (TextView)findViewById(R.id.textView3);
 
-        vt1 = (EditText) findViewById(R.id.textview6);
+        vt1 = (EditText)findViewById(R.id.textview6);
         vt2 = (EditText)findViewById(R.id.textView7);
         vt3 = (EditText)findViewById(R.id.textView8);
         vt1.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -108,7 +69,11 @@ public class ListItemActivity extends AppCompatActivity
                 if (!hasFocus) {
                     if(testLocation == null)
                         testLocation = new Location("");
-                    testLocation.setAltitude(Double.parseDouble(vt1.getText().toString()));
+                    try {
+                        testLocation.setAltitude(Double.parseDouble(vt1.getText().toString()));
+                    }catch (NumberFormatException nfe){
+                        vt1.setText("");
+                    }
                 }
             }
         });
@@ -118,7 +83,11 @@ public class ListItemActivity extends AppCompatActivity
                 if (!hasFocus) {
                     if(testLocation == null)
                         testLocation = new Location("");
-                    testLocation.setLatitude(Double.parseDouble(vt2.getText().toString()));
+                    try{
+                        testLocation.setLatitude(Double.parseDouble(vt2.getText().toString()));
+                    }catch (NumberFormatException nfe){
+                        vt2.setText("");
+                    }
                 }
             }
         });
@@ -128,7 +97,11 @@ public class ListItemActivity extends AppCompatActivity
                 if (!hasFocus) {
                     if(testLocation == null)
                         testLocation = new Location("");
-                    testLocation.setLongitude(Double.parseDouble(vt3.getText().toString()));
+                    try{
+                        testLocation.setLongitude(Double.parseDouble(vt3.getText().toString()));
+                    }catch (NumberFormatException nfe){
+                        vt3.setText("");
+                    }
                 }
             }
         });
@@ -140,7 +113,8 @@ public class ListItemActivity extends AppCompatActivity
         if(tv3 != null && getLocation() != null)
             tv3.setText(getLocation()==null?"Latitude":getLocation().getLatitude()+"");
 
-        testLocation = getLocationFromFile();
+        if(listItemObject != null)
+            testLocation = listItemObject.getLocation();
         if(vt1 != null)
             vt1.setText(testLocation==null?"Altitude":testLocation.getAltitude()+"");
         if(vt2 != null)
@@ -148,8 +122,7 @@ public class ListItemActivity extends AppCompatActivity
         if(vt3 != null)
             vt3.setText(testLocation==null?"Latitude":testLocation.getLatitude()+"");
 
-        if(checkLocationPermission())
-            startServices();
+        checkLocationPermission();
 
         setLocation = (Button)findViewById(R.id.button);
         setLocation.setOnClickListener(new View.OnClickListener() {
@@ -163,21 +136,10 @@ public class ListItemActivity extends AppCompatActivity
                 if(vt3 != null)
                     vt3.setText(testLocation==null?"Latitude":testLocation.getLatitude()+"");
                 writeGPS(testLocation);
+                if(listItemObject != null)
+                    listItemObject.setLocation(testLocation);
             }
         });
-        instance = this;
-    }
-
-    private void startServices() {
-        final Intent service = new Intent(ListItemActivity.this, MyService.class);
-        if (!MyService.IS_SERVICE_RUNNING) {
-            service.setAction(Constants.ACTION.STARTFOREGROUND_ACTION);
-            MyService.IS_SERVICE_RUNNING = true;
-        } else {
-            service.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
-            MyService.IS_SERVICE_RUNNING = false;
-        }
-        startService(service);
     }
 
     private void writeGPS(Location testLocation) {
@@ -271,8 +233,7 @@ public class ListItemActivity extends AppCompatActivity
                 return getLocationManager().getLastKnownLocation(getLocationManager().getAllProviders().get(0));
             else ActivityCompat.requestPermissions(this, permisions, 1);
         }
-        if(checkLocationPermission())
-            startServices();
+        checkLocationPermission();
         return location;
     }
     public LocationManager getLocationManager() {
@@ -289,33 +250,6 @@ public class ListItemActivity extends AppCompatActivity
         return locationManager;
     }
 
-    /*
-     * BroadcastReceiver mBrSend; BroadcastReceiver mBrReceive;
-     */
-    private void sendSMS(String phoneNumber, String message) {
-        ArrayList<PendingIntent> sentPendingIntents = new ArrayList<PendingIntent>();
-        ArrayList<PendingIntent> deliveredPendingIntents = new ArrayList<PendingIntent>();
-        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(this, SmsSentReceiver.class), 0);
-        PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(this, SmsDeliveredReceiver.class), 0);
-        try {
-            SmsManager sms = SmsManager.getDefault();
-            ArrayList<String> mSMSMessage = sms.divideMessage(message);
-            for (int i = 0; i < mSMSMessage.size(); i++) {
-                sentPendingIntents.add(i, sentPI);
-                deliveredPendingIntents.add(i, deliveredPI);
-            }
-            sms.sendMultipartTextMessage(phoneNumber, null, mSMSMessage,
-                    sentPendingIntents, deliveredPendingIntents);
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            Toast.makeText(getBaseContext(), "SMS sending failed...", Toast.LENGTH_SHORT).show();
-        }
-
-    }
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String[] permissions, int[] grantResults) {
@@ -346,4 +280,17 @@ public class ListItemActivity extends AppCompatActivity
     public void onProviderEnabled(String s) {}
     @Override
     public void onProviderDisabled(String s) {}
+
+
+    @Override
+    public void onPause(){
+        ListItemCache.writeToFile(this);
+        super.onPause();
+    }
+
+    @Override
+    public void onStop(){
+        ListItemCache.writeToFile(this);
+        super.onStop();
+    }
 }

@@ -38,6 +38,7 @@ import android.widget.ViewSwitcher;
 
 import com.example.jarndt.testingapp.sms.SmsDeliveredReceiver;
 import com.example.jarndt.testingapp.sms.SmsSentReceiver;
+import com.example.jarndt.testingapp.utilities.FileOptions;
 import com.google.gson.Gson;
 
 import java.io.FileInputStream;
@@ -61,35 +62,18 @@ public class MainActivity extends AppCompatActivity
         return instance;
     }
 
-    Gson gson = new Gson();
     public Location getLocationFromFile() {
-        StringBuffer fileContent = new StringBuffer("");
-        FileInputStream fis;
-        boolean b = false;
-        for(String s : fileList())
-            if("test_location".equals(s))
-                b = true;
-        if(!b)
-            return null;
-
-        try {
-            fis = openFileInput("test_location");
-            byte[] buffer = new byte[1024];
-
-            int n;
-            while ((n = fis.read(buffer)) != -1)
-                fileContent.append(new String(buffer, 0, n));
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        String fileContent = FileOptions.getFileContents(this, "test_location");
         Location l = new Location("");
-        String[] split = fileContent.toString().split(",");
+        String[] split = fileContent.split(",");
+        if(split.length != 3)
+            return null;
         l.setAltitude(Double.parseDouble(split[2]));
         l.setLongitude(Double.parseDouble(split[1]));
         l.setLatitude(Double.parseDouble(split[0]));
         return l;
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
