@@ -90,7 +90,7 @@ public class MyService extends Service{
 //            sendAtLocation = getLocationFromFile();
 //            Log.e(TAG, "onLocationChanged: "+sendAtLocation);
             for(ListItemObject listItemObject : ListItemCache.getListItemObjects()) {
-                if (listItemObject.getLocation() != null && isAtLocation(location, listItemObject.getLocation())) {
+                if (listItemObject.isActive() && listItemObject.getLocation() != null && isAtLocation(location, listItemObject.getLocation())) {
                     if (listItemObject.getLastUpdatedDate() != null && listItemObject.getLastUpdatedDate().isBefore(DateTime.now().minusDays(1))) {
                         Log.e(TAG, "onLocationChange: sending sms");
                         FileOptions.sendSMS(MyService.this, listItemObject.getSmsNumber(), listItemObject.getMessage());

@@ -90,36 +90,55 @@ public class ListItemActivity extends AppCompatActivity
             if(listItemObject == null)
                 return;
             listItemObject.setLocation(location);
-            autoFillListItemObject();
+            autoFillListItemObject(view.getId());
         });
     }
 
-    private void autoFillListItemObject() {
+    private void autoFillListItemObject(int...excludeIds) {
         if(listItemObject == null)
             return;
 
-        setLocation();
-        ((EditText)findViewById(R.id.nameEditText)).setText(listItemObject.getName());
-        ((EditText)findViewById(R.id.phoneNumberEditText)).setText(listItemObject.getSmsNumber());
-        ((EditText)findViewById(R.id.messageEditText)).setText(listItemObject.getMessage());
+        setLocation(excludeIds);
+        setText(R.id.nameEditText,listItemObject.getName(),excludeIds);
+        setText(R.id.phoneNumberEditText,listItemObject.getSmsNumber(),excludeIds);
+        setText(R.id.messageEditText,listItemObject.getMessage(),excludeIds);
 
         ((CheckBox)findViewById(R.id.activeCheckBox)).setChecked(listItemObject.isActive());
     }
 
-    public void setLocation() {
+    private void setText(int id, String name,int...excludeIds) {
+        if(isIn(excludeIds,id))
+            return;
+        View v = findViewById(id);
+        if(v instanceof EditText)
+            ((EditText)findViewById(id)).setText(name);
+        else if(v instanceof TextView)
+            ((TextView)findViewById(id)).setText(name);
+    }
+
+    private boolean isIn(int[] excludeIds, int id) {
+        if(excludeIds == null || excludeIds.length == 0)
+            return false;
+        for(int i : excludeIds)
+            if(id == i)
+                return true;
+        return false;
+    }
+
+    public void setLocation(int...excludeIds) {
         if(listItemObject.getLocation() == null){
-            ((EditText) findViewById(R.id.altitudeEditText)).setText(getLocation().getAltitude() + "");
-            ((EditText) findViewById(R.id.latitudeEditText)).setText(getLocation().getLatitude() + "");
-            ((EditText) findViewById(R.id.longitudeEditText)).setText(getLocation().getLongitude() + "");
+            setText(R.id.altitudeEditText,getLocation().getAltitude()+"",excludeIds);
+            setText(R.id.latitudeEditText,getLocation().getLatitude()+"",excludeIds);
+            setText(R.id.longitudeEditText,getLocation().getLongitude()+"",excludeIds);
         }else {
-            ((EditText) findViewById(R.id.altitudeEditText)).setText(listItemObject.getLocation().getAltitude() + "");
-            ((EditText) findViewById(R.id.latitudeEditText)).setText(listItemObject.getLocation().getLatitude() + "");
-            ((EditText) findViewById(R.id.longitudeEditText)).setText(listItemObject.getLocation().getLongitude() + "");
+            setText(R.id.altitudeEditText,listItemObject.getLocation().getAltitude()+"",excludeIds);
+            setText(R.id.latitudeEditText,listItemObject.getLocation().getLatitude()+"",excludeIds);
+            setText(R.id.longitudeEditText,listItemObject.getLocation().getLongitude()+"",excludeIds);
         }
         if(getLocation() != null) {
-            ((TextView) findViewById(R.id.altitudeTextview)).setText(getLocation().getAltitude() + "");
-            ((TextView) findViewById(R.id.latitudeTextView)).setText(getLocation().getLatitude() + "");
-            ((TextView) findViewById(R.id.longitudeTextView)).setText(getLocation().getLongitude() + "");
+            setText(R.id.altitudeTextview,getLocation().getAltitude()+"",excludeIds);
+            setText(R.id.latitudeTextView,getLocation().getLatitude()+"",excludeIds);
+            setText(R.id.longitudeTextView,getLocation().getLongitude()+"",excludeIds);
         }
     }
 
@@ -242,7 +261,7 @@ public class ListItemActivity extends AppCompatActivity
     @Override
     public void onLocationChanged(Location location) {
         this.location = location;
-        setLocation();
+        setLocation(new int[]{R.id.altitudeEditText,R.id.latitudeEditText,R.id.longitudeEditText});
     }
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {}
